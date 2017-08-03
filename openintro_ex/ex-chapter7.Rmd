@@ -1,0 +1,179 @@
+---
+title: "course3 - About Linear Regression and Modeling - chapter 7"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE, results = TRUE)
+```
+
+## Getting started
+Let's load the packages.
+
+```{r load-packages, message=FALSE, echo=FALSE, warning=FALSE}
+if(!require(dplyr)){install.packages("dplyr")}
+if(!require(ggplot2)){install.packages("ggplot2")}
+if(!require(tidyr)){install.packages("tidyr")}
+```
+
+
+```{r -ex0}
+d <- mtcars
+# step1. Fit the model
+fit <- lm(mpg ~ hp, data = d)
+fit
+# step2. calculate predicted and residual values
+d$predicted <- predict(fit)   # Save the predicted values
+d$residuals <- residuals(fit) # Save the residual values
+d %>% select(mpg, predicted, residuals) %>% head()
+# step3. Plot the actual and predicted values
+ggplot(d, aes(x = hp, y = mpg)) +  # Set up canvas with outcome variable on y-axis
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +  # Plot regression slope
+  geom_segment(aes(xend = hp, yend = predicted), alpha = 0.2) +
+  geom_point(aes(color = abs(residuals), size = abs(residuals))) + # plot the actual values, size also mapped, , Color mapped to abs(residuals)
+  scale_color_continuous(low = "black", high = "red") +  # Colors to use here
+  guides(color = FALSE) +  # Color legend removed
+  geom_point(aes(y = predicted), shape = 1) +  # Add the predicted values
+  theme_bw()  # Add theme for cleaner look
+#step4. use residuals to adjust
+
+
+```
+
+```{r -ex01}
+#the same plot but with coloring up and above values
+ggplot(d, aes(x = hp, y = mpg)) +  # Set up canvas with outcome variable on y-axis
+  geom_smooth(method = "lm", se = FALSE, color = "lightgrey") +  # Plot regression slope
+  geom_segment(aes(xend = hp, yend = predicted), alpha = 0.2) +
+  geom_point(aes(color = residuals)) +  # Color mapped here
+  scale_color_gradient2(low = "blue", mid = "white", high = "red") +  # Colors to use here
+  guides(color = FALSE) +
+  geom_point(aes(y = predicted), shape = 1) +  # Add the predicted values
+  theme_bw()  # Add theme for cleaner look
+#step4. use residuals to adjust
+
+```
+
+7.25 The Coast Starlight, Part II. Exercise 7.13 introduces data on the Coast Starlight
+Amtrak train that runs from Seattle to Los Angeles. The mean travel time from one stop to the next on the Coast Starlight is 129 mins, with a standard deviation of 113 minutes. The mean distance traveled from one stop to the next is 108 miles with a standard deviation of 99 miles. The correlation between travel time and distance is 0.636.
+(a) Write the equation of the regression line for predicting travel time.
+(b) Interpret the slope and the intercept in this context.
+(c) Calculate R2 of the regression line for predicting travel time from distance traveled for the Coast Starlight, and interpret R2 in the context of the application.
+(d) The distance between Santa Barbara and Los Angeles is 103 miles. Use the model to estimate the time it takes for the Starlight to travel between these two cities.
+(e) It actually takes the Coast Starlight about 168 mins to travel from Santa Barbara to Los Angeles. Calculate the residual and explain the meaning of this residual value.
+(f) Suppose Amtrak is considering adding a stop to the Coast Starlight 500 miles away from Los Angeles. Would it be appropriate to use this linear model to predict the travel time from Los Angeles to this point?
+
+
+```{r - ex7.25}
+R <- 0.636
+t_mean <- 129
+t_se <- 113
+
+d_mean <- 108
+d_se <- 99
+
+b1 <- R*t_se/d_se
+b0 <- t_mean - b1*d_mean
+R2 <- sqrt(R)
+x_calc <- 103
+
+y_calc <- b0 + x_calc*b1
+
+y_observed  <- 168
+x_observed <- 103
+y_expected <- b0 + x_observed*b1
+residual <- y_observed - y_expected
+```
+
+(a) $y =  {b}_{0} + {b}_1*x$    
+${b}_{1}=$ `r b1`   
+${b}_{0}=$ `r b0`     
+y = `r b0` +`r b1`*x
+
+Solution:
+travel_time = 51 + 0.726 * distance.
+
+(b) b1:
+For each additional mile in distance, the model predicts an additional 0.726 minutes in traveltime. 
+b0: When the distance traveled is 0 miles, the travel time is expected to be 51 minutes. It does not make sense to have a travel distance of 0 miles in this context. Here, the y-intercept serves only to adjust the height of the line and
+is meaningless by itself.
+
+(c)
+${R}^2=$ `r R2`
+About 40% of the variability in travel time is accounted for by the model, i.e. explained by the distance traveled.
+
+(d)
+$y_{calc}=$ `r y_calc`
+
+(e)
+$residual=$ `r residual` 
+The positive residual means that the model underestimates the travel time.   
+
+(f) No, this calculation would require extrapolation.
+
+7.37 Husbands and wives, Part II. The scatterplot below summarizes husbands' and wives'
+heights in a random sample of 170 married couples in Britain, where both partners' ages are below 65 years. Summary output of the least squares fit for predicting wife's height from husband's height is also provided in the table.
+
+(a) Is there strong evidence that taller men marry taller women? State the hypotheses and include any information used to conduct the test.
+(b) Write the equation of the regression line for predicting wife's height from husband's height.
+(c) Interpret the slope and intercept in the context of the application.
+(d) Given that R2 = 0.09, what is the correlation of heights in this data set?
+(e) You meet a married man from Britain who is 5'9" (69 inches). What would you predict his wife's height to be? How reliable is this prediction?
+(f) You meet another married man from Britain who is 6'7" (79 inches). Would it be wise to use the same linear model to predict his wife's height? Why or why not?
+
+```{r, ex37}
+b0 <- 43.57
+b1 <- 0.28
+R2 <- 0.09
+R <- sqrt(R2)
+
+```
+
+(a)
+$H_{0}: \beta = 0$   
+$H_{1}: \beta > 0$
+
+As p_value is extremly small we reject $H_{0}$. The data provide convincing evidence
+that wives' and husbands' heights are positively correlated.
+
+(b)  
+$height_{wife} =$ `r b0` +`r b1`* $height_{husband}$
+
+(c)
+Slope: For each additional inch in husband's height, the average wife's height is
+expected to be an additional 0.2863 inches on
+average.     
+Intercept: Men who are 0 inches tall are expected to have wives who are, on average,
+43.5755 inches tall. The intercept here is meaningless, and it serves only to adjust the height of the line.
+
+(d)
+$R=$`r R`. 
+
+(e)
+Since R2 is low, the prediction based on this regression model is not very reliable.  
+
+(f) No, we should avoid extrapolating.  
+
+7.39 Urban homeowners, Part II.
+Exercise 7.33 gives a scatterplot displaying the relationship between the percent of families that own their home and the percent of the population living in urban
+areas. Below is a similar scatterplot, excluding District of Columbia, as well as the residuals plot. There were 51 cases.
+(a) For these data, R2 = 0.28. What is the correlation?
+How can you tell if it is positive or negative?  
+(b) Examine the residual plot. What do you observe?
+Is a simple least squares fit appropriate for these data?
+
+```{r, ex39}
+R2 <-0.28
+R <- sqrt(0.28)
+
+```
+
+(a)
+As $R^2=$ `r R2`, $R=$ `r R`. The slope is negative, that's way the correlation is negative.   
+
+
+(b) The residuals appear to be fan shaped, indicating non-constant variance. Therefore a simple least squares fit is not appropriate for these data.
+
+

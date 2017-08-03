@@ -1,0 +1,10 @@
+---
+title: "Multiple and logistic regression"
+output: html_notebook
+---
+
+
+```{r - ex }
+plot(cars)
+```
+

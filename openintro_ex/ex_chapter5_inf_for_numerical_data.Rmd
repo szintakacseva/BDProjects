@@ -1,0 +1,427 @@
+---
+title: "Numerical inference exercises"
+output:
+  html_document: default
+  html_notebook: default
+---
+
+Let's load the packages.
+
+```{r load-packages, message=FALSE}
+library(devtools)
+library(statsr)
+library(dplyr)
+library(ggplot2)
+```
+
+**Exercise 5.1**   
+Identify the critical t. An independent random sample is selected from an approximately normal population with unknown standard deviation. Find the degrees of freedom and the critical t-value (t?) for the given sample size and confidence level.          
+(a) n = 6, CL = 90%          
+(b) n = 21, CL = 98%         
+(c) n = 29, CL = 95%         
+(d) n = 12, CL = 99%             
+
+**Solution**     
+Finding the critical T score         
+Calculating for the two-sided 95% confidence interval       
+(always use the positive values)
+  
+(a) - 90%         
+```{r ex-5.1-a}
+n <- 6
+t_score <- qt(.05, df = n-1, lower.tail = FALSE)
+t_score
+```
+
+(b) - 98%
+```{r ex-5.1-b}
+n <- 21
+t_score <- qt(.01, df = n-1, lower.tail = FALSE)
+t_score
+```
+
+(c) - 95%         
+```{r ex-5.1-c}
+n <- 29
+t_score <- qt(.025, df = n-1, lower.tail = FALSE)
+t_score
+```
+
+(d) - 99%
+```{r ex-5.1-d}
+n <- 12
+t_score <- qt(.005, df = n-1, lower.tail = FALSE)
+t_score
+```
+
+**Exercise 5.3**????    
+Find the p-value    
+Part I. An independent random sample is selected from an approximately normal population with an unknown standard deviation. Find the p-value for the given
+set of hypotheses and T test statistic. Also determine if the null hypothesis would be rejected at $\alpha= 0.05$.
+ 
+(a) HA : $\mu > \mu_{0}$, n = 11, T = 1.91   
+(b) HA : $\mu < \mu_{0}$, n = 17, T = -3.45   
+(c) HA : $\mu \ne \mu_{0}$, n = 7, T = 0.83       
+(d) HA : $\mu > \mu_{0}$, n = 28, T = 2.13
+
+```{r - ex-5.3}
+p_value_a <- pt(1.91, df = 10, lower.tail = FALSE)
+p_value_a
+
+p_value_b <- pt(-3.45, df = 16, lower.tail = FALSE)
+p_value_b
+
+p_value_c <- pt(0.83, df = 6, lower.tail = FALSE)
+p_value_c
+
+p_value_d <- pt(2.13, df = 27, lower.tail = FALSE)
+p_value_d
+
+
+```
+
+**Exercise 5.5**   
+Working backwards, Part I. A 95% confidence interval for a population mean, $\mu$, is given as (18.985, 21.015). This confidence interval is based on a simple random sample of 36 observations. Calculate the sample mean and standard deviation. Assume that all conditions necessary for inference are satisfied. Use the t-distribution in any calculations.
+
+**Solution**    
+ci = (18.985, 21.015)
+n = 36  
+The sample mean is the midpoint of the confidence interval.
+$\bar{x}$ = 20  
+(21.015-18.985)/2 = 1.015 18.985 + 1.015 = 20 or 21.015 - 1.015 = 20)
+In other wirds, ci =  $\bar{x} \pm ME$.        
+Margin of error: ME = t_score*SE       
+Sample standard deviation: s = SE*sqrt(n)           
+
+```{r ex-5.5}
+n <- 36
+ci_lower <- 18.985
+ci_upper <- 21.015
+ME <- (ci_upper - ci_lower)/2 
+t_score <- round(qt(0.025, df = n-1, lower.tail = FALSE ), 2)
+SE <- ME/t_score
+s <- SE*sqrt(n)
+
+```
+The sample mean: $\bar{x}$ = 20       
+Margine of error is: ME = `r ME`.     
+T score is: t_score = `r t_score`.       
+Standard error is: SE = `r SE`.          
+Sample standard deviation: s = `r s`.            
+
+**Exercise 5.13**     
+Car insurance savings. A market researcher wants to evaluate car insurance savings at a competing company. Based on past studies he is assuming that the standard deviation of savings is \$100. He wants to collect data such that he can get a margin of error of no more than $10 at a 95% confidence level. How large of a sample should he collect?
+
+**Solution**
+$\sigma$ (sigma) = 100      
+confidence level = 95%         
+ME = 10          
+ME = t_score*SE; SE = sigma/sqrt(n)       
+
+If the sample size is large, then we have a normal distribution. So we calculate with z_score.         
+z_score = 1.96 (in case of 95% confidence interval)          
+SE = ME/z_score              
+SE = sigma/sqrt(n)                     
+sqrt(n)\*ME = sigma*z_score                 
+
+
+```{r ex-5.13}
+ME <- 10
+sigma <- 100
+z_score <- 1.96
+
+n <- (sigma^2)*(z_score^2)/(ME^2)
+```
+
+The sample size should be at least n = `r n`.
+
+**Exercise 5.19**   
+Global warming, Part I.    
+Is there strong evidence of global warming? Let's consider a small scale example, comparing how temperatures have changed in the US from 1968 to 2008.
+The daily high temperature reading on January 1 was collected in 1968 and 2008 for 51 randomly selected locations in the continental US. Then the diference between the two readings (temperature in 2008 - temperature in 1968) was calculated for each of the 51 different locations. The average of these 51 values was 1.1 degrees with a standard deviation of 4.9 degrees. We are interested in
+determining whether these data provide strong evidence of temperature warming in the continental US.   
+(a) Is there a relationship between the observations collected in 1968 and 2008? Or are the observations in the two groups independent? Explain.     
+(b) Write hypotheses for this research in symbols and in words.      
+(c) Check the conditions required to complete this test.         
+(d) Calculate the test statistic and find the p-value.          
+(e) What do you conclude? Interpret your conclusion in context.           
+(f) What type of error might we have made? Explain in context what the error means.     
+(g) Based on the results of this hypothesis test, would you expect a confidence interval for the average difference between the temperature measurements from 1968 and 2008 to include 0? Explain your reasoning.
+
+**Solution**
+(a) The data are paired. For each observation in one dataset there is exactly one corresponding observation in the other dataset for the same geographic location.
+
+(b)
+H0 : $\mu_{diff}$ = 0           
+(There is no difference in average daily high temperature between January 1, 1968
+and January 1, 2008 in the continental US.)
+
+H1 : $\mu_{diff}$ > 0         
+
+(c) Locations are random and represent less than 10% of all possible locations in the US. The sample size is at least 30. We are not given the distribution to check the skew. In practice, we would ask to see the data to check this condition, but here we will move forward under the assumption that it is not strongly skewed.   
+
+(d) Test statistic using t distribution
+By default 95% confidence interval. One-sided test so the confidence level 
+$\alpha$ (alpha) = 0.05
+
+```{r ex-5.19}
+n = 51
+alpha = 0.05
+t_score = qt(alpha, df = n-1, lower.tail = FALSE)
+p_value = pt(t_score, df = n-1, lower.tail = FALSE)
+```
+
+The t_score is:  t_score = `r t_score`.
+The p_value is: p_value = `r p_value`.
+
+(e) Since the p_value > $\alpha$ (0.05) (since not given use 0.05), fail to reject H0. The data do not provide strong evidence of temperature warming in the continental US. However it should be noted that the p-value is very close
+to 0.05.
+
+(f) We might have made a Type2 Error, as we incorrectly failed to reject the null hypothesis. There may be an increase, but we were unable to detect it.  
+
+(g) Yes, since we failed to reject H0, which had a null value of 0.
+
+
+**Example 5.21** (Global warming, Part II.)     
+We considered the differences between the temperature readings in January 1 of 1968 and 2008 at 51 locations in the continental US in Exercise 5.19. The mean and standard deviation of the reported differences are 1.1 degrees and 4.9 degrees.
+(a) Calculate a 90% confidence interval for the average difference between the temperature measurements between 1968 and 2008.
+(b) Interpret this interval in context.
+(c) Does the confidence interval provide convincing evidence that the temperature was higher in 2008 than in 1968 in the continental US? Explain.
+
+**Solution**
+$\bar{x}_{diff}$ (x_bar) = 1.1
+s = 4.9
+
+(a)
+A confidence interval for a population mean is of the following form
+\[ \bar{x} \pm t^\star \frac{s}{\sqrt{n}} \]
+
+We can find the critical value for a 90% confidence interal using (two-sided)
+```{r z_star_90}
+t_star_90 <- qt(0.05, df = n-1, lower.tail = FALSE)
+t_star_90
+```
+
+Let's finally calculate the confidence interval:
+```{r ci}
+n <- 51
+x_bar <- 1.1
+s <- 4.9
+t_star_90 = 1.67
+  
+confidence_interval <- 
+  data.frame(lower = x_bar - t_star_90 * s / sqrt(n),
+            upper = x_bar + t_star_90 * s / sqrt(n))
+
+confidence_interval
+```
+
+(b) We are 90% confident that the average daily high on January 1, 2008 in the continental US was 0.05 degrees lower to 2.25 degrees higher than the average
+daily high on January 1, 1968.
+
+(c) No, since 0 is included in the interval.
+
+**Exercise 5.23** Gifted children. 
+Researchers collected a simple random sample of 36 children who had been identifed as gifted in a large city. The following histograms show the distributions of the IQ scores of mothers and fathers of these children. Also provided are some sample statistics.
+
+(a) Are the IQs of mothers and the IQs of fathers in this data set related? Explain.     
+(b) Conduct a hypothesis test to evaluate if the scores are equal on average. Make sure to clearly state your hypotheses, check the relevant conditions, and state your conclusion in the context of the data.
+
+**Solution**
+(a) Each of the  mathers are corresponding to exactly one father (and vice-versa). So there is a special relation between them.
+
+(b)    
+H0 : $\mu_{diff} = 0$               
+(There is no difference in average IQ means of mathers and fathers)    
+
+H1 : $\mu_{diff} \ne 0$       
+
+* Independence verification     
+      + Random sample from less than 10% of population.     
+      + Sample size of at least 30.     
+      + The skew of the differences is, at worst, slight. 
+ 
+t = (x_bar - mu_0)/s/sqrt(n)
+\[ t^\star =   \frac{(\bar{x}-\mu_{0})}{\frac{s}{\sqrt{n}}} \]
+
+
+```{r ex-5.23 }
+n <- 36
+s <- 7.5
+x_bar_diff = 3.4
+s = 7.5
+mu_0 = 0
+t_value <- (x_bar_diff - mu_0)/s*sqrt(n)
+t_value
+p_value <- 2*pt(t_value, df = n-1, lower.tail = FALSE)
+round(p_value, 2)
+
+```
+
+Since p_value = 0.01 < 0.05 we reject the null hypothesis $H_{0}$. The
+data provide strong evidence that the average IQ scores of mothers and fathers of gifted children are different, and the data indicate that mothers' scores are higher than fathers' scores for the parents of gifted children.
+
+**Exercise 5.27** 
+Friday the 13th, Part I. In the early 1990's, researchers in the UK collected data on traffic flow, number of shoppers, and traffc accident related emergency room admissions on Friday the 13th and the previous Friday, Friday the 6th. The histograms below show the distribution of number of cars passing by a specific intersection on Friday the 6th and Friday the 13th for many such date pairs. Also given are some sample statistics, where the difference is the number of cars on the 6th minus the number of cars on the 13th.
+
+(a) Are there any underlying structures in these data that should be considered in an analysis? Explain.       
+(b) What are the hypotheses for evaluating whether the number of people out on Friday the 6th is different than the number out on Friday the 13th?         
+(c) Check conditions to carry out the hypothesis test from part (b).     
+(d) Calculate the test statistic and the p-value.                 
+(e) What is the conclusion of the hypothesis test?                 
+(f) Interpret the p-value in this context.                  
+(g) What type of error might have been made in the conclusion of your test? Explain.         
+
+**Solution**
+(a) These data are paired. For example, the Friday the 13th in say, September 1991, would probably be more similar to the Friday the 6th in September 1991 than to Friday the 6th in another month or year.
+(b) $\mu_{diff} = \mu_{sixth} - \mu_{thirteenth}$     
+$H_{0}: \mu_{diff} = 0$    
+$H_{1}: \mu_{diff} \ne 0$          
+
+(c)     
+
+* Independence:          
+       + The months selected are not random. However, if we think these dates are  roughly equivalent to a simple random sample of all such Friday 6th/13th date pairs, then independence is reasonable. To proceed, we must make this strong assumption, though we should note this assumption in any reported results.    
+
+* Normality: 
+       + With fewer than 10 observations, we would need to use the t-distribution to model the sample mean. The normal probability plot of the differences shows
+an approximately straight line. There isn't a clear reason why this distribution would be skewed, and since the normal quantile plot looks reasonable, we can mark this condition as reasonably satisfied.
+
+(d) test statistic
+```{r ex-5.27}
+n <- 10
+s <- 1.176
+x_bar_diff = 1.835 
+mu_0 <- 0
+t_value <- (x_bar_diff - mu_0)/s*sqrt(n)
+t_value
+p_value <- 2*pt(t_value, df = n-1, lower.tail = FALSE)
+p_value
+
+```
+
+As the p-value is small so we reject $H_{0}$. There is a strong evidence that there is a difference in the traffic. The average number of cars at the intersection is higher on Friday the 6th than on Friday the 13th.
+
+(f) If the average number of cars passing the intersection actually was the same on Friday the 6th and 13th, then the probability that we would observe a test statistic so far from zero is less than 0.01.
+
+(g) We might have made a Type 1 Error, incorrectly rejecting the null hypothesis.
+
+**Exercise 5.31** Chicken diet and weight, Part I.
+Chicken farming is a multi-billion dollar industry, and any methods that increase the growth rate of young chicks can reduce consumer costs while increasing company profits, possibly by millions of dollars. An experiment was conducted to
+measure and compare the effectiveness of various feed supplements on the growth rate of chickens.
+Newly hatched chicks were randomly allocated into six groups, and each group was given a different feed supplement. Below are some summary statistics from this data set along with box plots showing the distribution of weights by feed type.
+
+(a) Describe the distributions of weights of chickens that were fed linseed and horsebean.
+(b) Do these data provide strong evidence that the average weights of chickens that were fed linseed and horsebean are different? Use a 5% significance level.
+(c) What type of error might we have committed? Explain.
+(d) Would your conclusion change if we used $\alpha$ = 0.01?
+
+**Solution**
+(a)
+Chicken fed linseed weigts 160.20 on average, while those fed with horsebeen 218.65, slightly higher. There are no apparent outliers. The distributions are relatively simmetric.
+(b)   
+$\mu_{diff} = \mu_{linseed} - \mu_{horsebeen}$     
+$H_{0}: \mu_{diff} = 0$    
+$H_{1}: \mu_{diff} \ne 0$    
+
+T-value calculation in case of independent groups
+t = (x_bar - mu_0)/s/sqrt(n)
+\[ t^\star =   \frac{(\bar{x}-\mu_{0})}{s} \]
+
+
+Test statistic
+```{r ex-5.31}
+n1 <- 12
+n2 <- 10
+mu1 <- 52.24
+mu2 <- 38.63
+n <- min(n1-1, n2-1)
+s <- sqrt(mu1^2/n1 + mu2^2/n2)
+x_bar_diff = 218.75 - 160.20  
+mu_0 <- 0
+t_value <- (x_bar_diff - mu_0)/s
+t_value
+p_value <- 2*pt(t_value, df = n, lower.tail = FALSE)
+p_value
+
+```
+
+(c) 
+Type 1 Error, as we rejected $H_{0}$.
+
+(d)
+In case of $\alpha = 0.1$
+```{r ex-5.31.c}
+t_value <- qt(0.1, df = 9, lower.tail = FALSE)
+p_value <- 2*pt(t_value, df = 9, lower.tail = FALSE)
+
+```
+As the p_value = `r p_value` > 0.1 we fail to reject the $H_{0}$. 
+
+
+**Example 5.37**
+Prison isolation experiment, Part I.
+Subjects from Central Prison in Raleigh, NC, volunteered for an experiment involving an isolation" experience. The goal of the experiment was to find a treatment that reduces subjects' psychopathic deviant T_scores. This score measures a person's need for control or their rebellion against control, and it is part of a commonly used mental health test called the Minnesota Multiphasic Personality Inventory (MMPI) test.     
+The experiment had three treatment groups:
+(1) Four hours of sensory restriction plus a 15 minute "therapeutic" tape advising that professional help is available.
+(2) Four hours of sensory restriction plus a 15 minute "emotionally neutral" tape on training hunting dogs.
+(3) Four hours of sensory restriction but no taped message.
+
+42 subjects were randomly assigned to these treatment groups, and an MMPI test was administered before and after the treatment. Distributions of the differences between pre and post treatment scores (pre - post) are shown below, along with some sample statistics. 
+
+Use this information to independently test the effectiveness of each treatment. Make sure to clearly state your hypotheses, check conditions, and interpret results in the context of the data.
+
+**Solution**
+$H_{0} : \mu_{diff} = \mu_{post} - \mu_{pre} = 0$
+$H_{1} : \mu_{diff} > 0$ (as we are intereseted in the effectiveness of treatments)
+
+* Independence
+     + Random sample as subjects are randomly assigned to treatments
+     + sample size < 30, t-test will be applied
+     + the distributions skewness are high so, the results won't be accurate
+
+We calculate t-score for each of the groups separately
+
+```{r ex5.37-1}
+n = 14
+mu1 = 6.21
+s1 = 12.3
+t_score_t1 <- (mu1-0)/s1*sqrt(n)
+p_value_1 <- pt(t_score_t1, df = n-1, lower.tail = FALSE)
+```
+
+In this case we reject the $H_{0}$ as the p_value_1 is < 0.05 (assuming a 95% confidence interval)
+The only significant test reduction is found in Treatment 1, however, we had earlier noted that this result might not be reliable due to the skew
+in the distribution.
+
+The same way we calculate the other distributions.
+
+**Exercise 5.39** Increasing corn yield. 
+A large farm wants to try out a new type of fertilizer to evaluate whether it will improve the farm's corn production. The land is broken into plots that produce an average of 1,215 pounds of corn with a standard deviation of 94 pounds per plot. The owner is interested in detecting any average difference of at least 40 pounds per plot. How many plots of land would be needed for the experiment if the desired power level is 90%? Assume each plot of land gets treated with either the current fertilizer or the new fertilizer.
+
+**Solution**
+$\mu_{diff} = \mu_{new}-\mu_{old} = 40$ - difference we care about
+$\mu = 1215$
+$\sigma = 94$
+
+```{r ex-5.39-1 - single tail of 90%}
+z_score_90 = qnorm(0.1, lower.tail = FALSE )
+```
+Single tail of 90% = z_score_90\*SE = 1.28\*SE
+rejection region bounds, 5% confidence level: $\pm$1.96*SE
+
+Setting 1.28\*SE + 1.96\*SE = $\mu_{diff}$ = 40
+
+```{r ex-5.39-2}
+SE <- 40/3.24
+SE
+```
+$SE = \sqrt{94^2/n + 94^2/n}$ 
+
+Calculating n
+```{r - calculating sample size}
+n <- 2*(94^2)/(12.34^2)
+n
+```
+
+We need 116 plots for each fertilizer.

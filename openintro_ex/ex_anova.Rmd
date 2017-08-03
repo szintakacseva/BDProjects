@@ -1,0 +1,43 @@
+---
+title: "Annova test"
+output: html_notebook
+---
+Loading the required packages     
+```{r load-packages, message=FALSE}
+library(devtools)
+library(dplyr)
+library(ggplot2)
+```
+
+
+Load dataset    
+```{r - load data}
+data("PlantGrowth")
+```
+
+view the structure of the data    
+```{r - view the structure of the data}
+str(PlantGrowth)
+```
+
+
+Prepare the dataset for anylysing
+
+```{r - prepare dataset}
+plant.df <-PlantGrowth
+plant.df$group = factor(plant.df$group, labels = c("Control", "Treatment 1", "Treatment 2"))
+```
+
+A boxplot of the distributions of the dried weights for the three competing groups is created using the ggplot package.
+
+```{r - plot the boxplots}
+ggplot(plant.df, aes(x = group, y = weight))+
+  geom_boxplot(fill = "gray80", colour="blue")+
+  scale_x_discrete()+
+  xlab("Treatment group")+
+  ylab("Dried weight of plans" )
+  
+  
+
+```
+
