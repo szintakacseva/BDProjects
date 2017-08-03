@@ -1,5 +1,5 @@
 ---
-title: "Exploring the BRFSS data"
+title: "Exploring the BRFSS data - first project"
 output:
   pdf_document: default
   html_document:
@@ -10,7 +10,7 @@ output:
 
 ## Setup
 
-### Load packages
+### Load packages as initial step
 
 ```{r load-packages, message = FALSE}
 library(ggplot2)
