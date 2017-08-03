@@ -1,5 +1,5 @@
 ---
-title: "Exploring the BRFSS data - first project"
+title: "Exploring the BRFSS data - first project  "
 output:
   pdf_document: default
   html_document:
