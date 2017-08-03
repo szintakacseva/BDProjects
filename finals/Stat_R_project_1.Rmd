@@ -10,7 +10,7 @@ output:
 
 ## Setup
 
-### Load packages as initial step
+### Load packages
 
 ```{r load-packages, message = FALSE}
 library(ggplot2)
