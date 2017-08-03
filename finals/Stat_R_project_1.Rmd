@@ -29,7 +29,7 @@ load("brfss2013.RData")
 (The summary is taken from the http://www.cdc.gov/brfss/annual_data/2013/pdf/Overview_2013.pdf)
 The Behavioral Risk Factor Surveillance System (BRFSS) is a collaborative project between all of the states in the United States (US) and participating US territories and the Centers for Disease Control and Prevention (CDC).
 BRFSS is an ongoing surveillance system designed to measure behavioral risk factors for the adult population (18 years of age and older) residing in the US. All 50 states and the federal territories collect survey data over usually one to three months.
-The BRFSS objective is to collect uniform, state-specific data on preventive health practices and risk behaviors that are linked to chronic diseases, injuries, and preventable infectious diseases that affect the adult population. Factors assessed by the BRFSS in 2013 include tobacco use, HIV/AIDS knowledge and prevention, exercise, immunization, health status, healthy days — health-related quality of life, health care access, inadequate sleep, hypertension awareness, cholesterol awareness, chronic health conditions, alcohol consumption, fruits and vegetables consumption, arthritis burden, and seatbelt use.
+The BRFSS objective is to collect uniform, state-specific data on preventive health practices and risk behaviors that are linked to chronic diseases, injuries, and preventable infectious diseases that affect the adult population. Factors assessed by the BRFSS in 2013 include tobacco use, HIV/AIDS knowledge and prevention, exercise, immunization, health status, healthy days â€” health-related quality of life, health care access, inadequate sleep, hypertension awareness, cholesterol awareness, chronic health conditions, alcohol consumption, fruits and vegetables consumption, arthritis burden, and seatbelt use.
 
 
 The dataset under analysis is called 'brfss2013'. This dataset includes information from collected data and weighting values for adjusting results. It contains 491775 observations of 330 variables.
@@ -40,15 +40,15 @@ The dataset under analysis is called 'brfss2013'. This dataset includes informat
 
 **Research quesion 1:**   
 
-As a first goal, the aim of the analysis is to have a deeper look to one of the chronic health conditions variable ‘addepev2’ – ‘Ever Told You Had A Depressive Disorder’ from the point of view of family types. I want to figure out whether the type of family the people leave have an influence on individuals treating their depressive disorder. Are they going to the doctor faster if they live in big families or not? And if they do it, are they diagnosed with depression more often?
+As a first goal, the aim of the analysis is to have a deeper look to one of the chronic health conditions variable â€˜addepev2â€™ â€“ â€˜Ever Told You Had A Depressive Disorderâ€™ from the point of view of family types. I want to figure out whether the type of family the people leave have an influence on individuals treating their depressive disorder. Are they going to the doctor faster if they live in big families or not? And if they do it, are they diagnosed with depression more often?
 The selected people are constrained to those where the depressive disorder, private residence, number of adults, men, women and the marital status were all provided. No children are taken into analysis. Note that in my terminology the family and household represent the same entities. The number of children are not taken into account.
  
 I defined two type of families:
 Nuclear: the number of adult man and/or adult women is 1
 Big: the number of adult man and/or adult women is more than 3.
-Finally, I have one last category ‘All’ – where the number of adults in the household is taken into account.
+Finally, I have one last category â€˜Allâ€™ â€“ where the number of adults in the household is taken into account.
 
-To figure out how people treat depressive order, I calculated the rate of  ‘Yes’ and ‘No’ answers of the variable(addepev2) in the above mentioned three categories. These rates give a ‘vague’ overview of the presence of depression in different family types comparing to each other and the society as a whole. 
+To figure out how people treat depressive order, I calculated the rate of  â€˜Yesâ€™ and â€˜Noâ€™ answers of the variable(addepev2) in the above mentioned three categories. These rates give a â€˜vagueâ€™ overview of the presence of depression in different family types comparing to each other and the society as a whole. 
 
 Variables used in the study:  
 addepev2: Ever Told You Had A Depressive Disorder -  is the main variable of this study.   
@@ -98,8 +98,8 @@ The main objective here is to study the depressive disorder rate in different fa
 
 First of all, I did some preliminary analysis to figure out the families where the number of women is more than 3. 
 
-An easy way of tabulating the output is to use the group_by() function by the ‘numwomen’ variable along with the summarise().
-In the ‘filter’ condition  I used as.numeric(as.character(numwomen)), because in the filter condition I had to specify a number type rather than factor.
+An easy way of tabulating the output is to use the group_by() function by the â€˜numwomenâ€™ variable along with the summarise().
+In the â€˜filterâ€™ condition  I used as.numeric(as.character(numwomen)), because in the filter condition I had to specify a number type rather than factor.
 
 ```{r women}
 my_brfss_women <- brfss2013 %>%
