@@ -1,0 +1,235 @@
+---
+title: "ReCheckIt Demo - Question 3"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+## Getting started
+Let's load the packages.
+
+```{r load-packages, message=FALSE}
+library(devtools)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+```
+
+Now load the data.
+
+```{r - load-data}
+load("data1_base.RData")
+load("data1_session.RData")
+load("data2_base.RData")
+load("data2_session.RData")
+```
+
+
+## Question 3. 
+Identify certain Customer-profiles within a Client. Use DATA2.
+
+## Solution
+My research question here is as follows. Firstly, I classify the customers of a client as those who have a ‘heavy’ shopping basket and those who just buy a relatively small number of items during one session. I would like to find out the success rate of customers in these two segments. 
+One again the success rate is defined as ‘status’ starts with ‘R’ or ‘Q’. My initial guess is that if somebody puts a lot of energy in putting lots of items in a shopping basket is more likely to buy it.
+
+To start with, have an nitial look at data, nr of interactions by client. No filtering at all, just grouping by client.
+
+```{r - }
+data2_client_summary <- data2_session %>%
+  select( client, customer, sessionID) %>%
+   group_by(client) %>%
+  summarise(count = n())
+
+data2_client_summary
+```
+
+The next step is to calculate the nr of items in the basket group by client, customer and sessionID.    
+
+
+```{r - grouping by client, customer, sessionID no filter }
+
+data2_ccs <- data2_session %>%
+  select( client, customer, sessionID, quantity) %>%
+   group_by(client, customer, sessionID) %>%
+   summarise(nrOfProducts = sum(quantity)) %>%
+   arrange(desc(nrOfProducts))
+
+head(data2_ccs, 20)
+
+```
+
+At this point I as observe that, there are customers without value. The only thing I can do here, to filter them out from my analysis.
+
+Let's have the list once again without the 'NULL' customers.
+
+
+```{r - grouping by client, customer, sessionID filtering the NULL customers}
+
+data2_ccs_f <- data2_session %>%
+  select( client, customer, sessionID, quantity) %>%
+   filter(customer !="NULL") %>%
+   group_by(client, customer, sessionID) %>%
+   summarise(nrOfProducts = sum(quantity)) %>%
+   arrange(desc(nrOfProducts))
+
+head(data2_ccs_f, 20)
+
+```
+
+
+In the above list there definitly some outliers. More than 1000 products in a basket worth verifying them. I haven't done at this stage. Just a first look at it.    
+
+
+
+```{r - data2_ccs_f - check}
+data2_ccs_f_check <- data2_session %>%
+  select(client, customer, sessionID, quantity,productName) %>%
+   filter(!is.na(client), client=="47967", customer == "2c27dc0ad6f3c039", sessionID == "742267") 
+
+data2_ccs_f_check 
+```
+
+Now Verify the relationship between the nr of items in the shopping basket during one session and if made an order or not for clients "65224", "47967" and	"23611".
+
+In the list below you can see the number of items ordered in descending order for the customers of client "65224" during one session. Then the statistics on the number of items ordered such as Min, 1stQuater, Median, Mean, 3rdQu, Max.   
+
+
+```{r - 65224-ordered  }
+
+data2_65224_o <- data2_session %>%
+  select(sessionID, client, customer, status, quantity ) %>%
+   filter(!is.na(client), client == "65224", customer!="NULL", is.element(substr(status,1,1), c("Q", "R", "O"))) %>%
+   group_by(client,customer, sessionID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+
+head(data2_65224_o, 10)
+```
+
+```{r - answer-65224-ordered-stat }
+summary(data2_65224_o$count)
+```
+
+In the list below you can see the number of items abandoned in descending order for the customers of client "65224" during one session. Then the statistics on the number of items abandoned such as Min, 1stQuater, Median, Mean, 3rdQu, Max. 
+
+
+
+```{r - 65224-not-ordered  }
+
+data2_65224_no <- data2_session %>%
+  select(sessionID, client, customer, status, quantity ) %>%
+   filter(!is.na(client), client == "65224", customer!="NULL", !is.element(substr(status,1,1), c("Q", "R", "O"))) %>%
+   group_by(client,customer, sessionID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+
+head(data2_65224_no, 10)
+```
+
+
+```{r - answer-65224-not-ordered-stat }
+summary(data2_65224_no$count)
+```
+
+It seems that in case of the client "65224" if there are more items in the basket during one session is more likely to order it.     
+
+In the list below you can see the number of items ordered in descending order for the customers of client "47967" during one session. Then the statistics on the number of items ordered such as Min, 1stQuater, Median, Mean, 3rdQu, Max. 
+
+
+```{r - answer-47967-ordered   }
+
+data2_47967_o <- data2_session %>%
+  select(sessionID, client, customer, status, quantity) %>%
+   filter(!is.na(client), client == "47967", customer!="NULL", is.element(substr(status,1,1), c("Q", "R", "O"))) %>%
+   group_by(client,customer, sessionID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+
+head(data2_47967_o, 10)
+```
+
+
+```{r - answer-47967-ordered-stat }
+summary(data2_47967_o$count)
+```
+
+In the list below you can see the number of items abandoned in descending order for the customers of client "47967" during one session. Then the statistics on the number of items ordered such as Min, 1stQuater, Median, Mean, 3rdQu, Max.
+
+```{r - answer-47967-not-ordered   }
+
+data2_47967_no <- data2_session %>%
+  select(sessionID, client, customer, status, quantity) %>%
+   filter(!is.na(client), client == "47967", customer!="NULL", !is.element(substr(status,1,1), c("Q", "R", "O"))) %>%
+   group_by(client,customer, sessionID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+
+head(data2_47967_no, 10)
+```
+
+
+```{r - answer-47967-not-ordered-stat }
+summary(data2_47967_no$count)
+```
+It seems that in case of the client "47967" if there are more items in the basket during one session is more likely to abandon it.
+
+In the list below you can see the number of items ordered in descending order for the customers of client "23611" during one session. Then the statistics on the number of items ordered such as Min, 1stQuater, Median, Mean, 3rdQu, Max.  
+
+
+```{r - answer-23611-ordered   }
+
+data2_23611_o <- data2_session %>%
+  select(sessionID, client, customer, status, quantity) %>%
+   filter(!is.na(client), client == "23611", customer !="NULL", is.element(substr(status,1,1), c("Q", "R", "O"))) %>%
+   group_by(client,customer, sessionID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+
+head(data2_23611_o, 10)
+```
+
+
+```{r - answer-23611-ordered-stat }
+summary(data2_23611_o$count)
+```
+
+In the list below you can see the number of items abandoned in descending order for the customers of client "23611" during one session. Then the statistics on the number of items ordered such as Min, 1stQuater, Median, Mean, 3rdQu, Max.
+
+```{r - answer-23611-not-ordered   }
+
+data2_23611_no <- data2_session %>%
+  select(sessionID, client, customer, status, quantity) %>%
+   filter(!is.na(client), client == "23611", customer !="NULL", !is.element(substr(status,1,1), c("Q", "R", "O"))) %>%
+   group_by(client,customer, sessionID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+
+head(data2_23611_no, 10)
+```
+
+
+```{r - answer-23611-not-ordered-stat }
+summary(data2_23611_no$count)
+```
+
+```{r hist }
+hist(data2_23611_no$count)
+```
+
+It seems that in case of the client "23611" if there are more items in the basket during one session is more likely to abandon it.
+
+
+## Final thought
+
+As a final observation, it seems that the customers of clients "23611" and  "47967" tend to abandon their basket if there are more items on it. In the same time customers of client "65224" tend to abandon their basket if there are less items on it.
+This observation emphasizes the final conclusion coming out as a result of currency analysis during question 1. Namely that client “65224” behaves differently than other clients.
+

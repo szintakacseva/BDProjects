@@ -1,0 +1,130 @@
+---
+title: "ReCheckIt Demo - Answer 2"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+## Getting started
+Let's load the packages.
+
+```{r load-packages, message=FALSE}
+library(devtools)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+```
+
+Load the already prepared datasets
+
+
+```{r - load-data}
+load("data1_base.RData")
+load("data1_session.RData")
+load("data2_base.RData")
+load("data2_session.RData")
+
+```
+
+
+```{r - add succsessfulnes column to data2_session}
+data2_session <- data2_session %>%
+ mutate(success = ifelse(substr(status,1,1) %in% c("Q", "R"), 1, 0))
+```
+
+
+## Question 2
+2. Top-10 products of large-volume clients? Focus on DATA1.
+
+## Solution
+Going back to question 1 analysis I already know that the large volume client is "23611".
+
+```{r - summary per client from Data1}
+data1_summary_client <- data1_session %>%
+  select(client, status, sessiontime, monthabb) %>%
+  group_by(client) %>%
+  summarise(nrOfInteractions = n()) %>%
+  arrange(desc(nrOfInteractions))
+
+data1_summary_client
+```
+
+The question suggests to focus on Data1. But product data is only on Data2. So I take the top ten products from Data2 using the client info from Data1. 
+To start with, there is a quick summary by clients from Data2. 
+
+
+```{r - summary per client from Data2}
+data2_summary_client <- data2_session %>%
+  select(client, status, productID, productName) %>%
+  group_by(client) %>%
+  summarise(nrOfInteractions = n()) %>%
+  arrange(desc(nrOfInteractions))
+
+data2_summary_client
+```
+
+
+Here is the list of top-10 products (as nr of products). No filter on successfullness or ordered. 
+```{r - Data2 - top Products}
+
+data2_products <- data2_session %>%
+  select(client, productID, amount, productName, quantity) %>%
+   filter(!is.na(amount), !is.na(client), client == "23611") %>%
+   group_by(client, productID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+v<-head(data2_products, 10)
+v
+```
+
+Then I collected the productNames for the IDs.
+
+```{r data2-productName}
+data2_productName <- data2_session %>%
+  select(client, productID, productName) %>%
+   filter(is.element(productID, v$productID))
+   
+
+distinct(data2_productName)
+```
+
+
+If I take into account the successfully ordered top ten products the list is as follows.
+
+```{r}
+data2_products_s <- data2_session %>%
+  select(client, productID, amount, productName, success, quantity) %>%
+   filter(!is.na(amount), !is.na(client), client == "23611", success==1) %>%
+   group_by(client, productID) %>%
+  summarise(count = sum(quantity)) %>%
+  arrange(desc(count))
+
+data2_products_sv<-head(data2_products_s, 10)
+data2_products_sv
+```
+
+
+Plotting the top ten products.
+
+```{r}
+ggplot(data2_products_sv, aes(x=productID, y=count)) + 
+  geom_dotplot(binaxis='y', stackdir='center', stackratio=1.5, dotsize=1.2, binwidth = 0.5)
+```
+
+
+Finally, I collected the product names for the IDs.
+
+```{r - data2-productName_s}
+data2_productName_s <- data2_session %>%
+  select(client, productID, productName) %>%
+   filter(is.element(productID, data2_products_sv$productID))
+   
+distinct(data2_productName_s)
+```
+
+
+Technical notes on "productID" and "productNAME". There is some inconsistency on 'productID' and "productNAME". If receive completely different count when I group my query on "productID"" or on "productNAME". Here I assume that "productID" is the correct assumption. Additionally, some "productID" have characters inside them. Usually we just have numbers for IDs. 

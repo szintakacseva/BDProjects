@@ -1,0 +1,225 @@
+---
+title: "ReCheckIt Demo"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+## Getting started
+Let's load the packages.
+
+```{r load-packages, message=FALSE}
+library(devtools)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+```
+
+
+
+## Data
+
+[DATA1 dataset](https://s3-eu-west-1.amazonaws.com/bigdatatest.recheckit.com/testData1_9f17d8b470.zip)        
+   
+- a full year with SESSION data
+- filtered for a few clients
+- filtered for relevant data fields times represent early departures/arrivals.
+    + no personalia
+    + no url
+   
+
+[DATA2 dataset](https://s3-eu-west-1.amazonaws.com/bigdatatest.recheckit.com/testData2_397ba1fea.zip)
+
+- a week of SESSIONS WITH PRODUCTS data
+- includes sessions and products together
+- hashed e-mail
+- 3 clients
+
+#### Vocabulary we use in these tasks
+- `Client`: a Client of ReCheckit, e.g. ikea.no
+- `Customer`: a client of our client, e.g. a person visiting ikea.no
+- `Session lifecycle`:
+    + starts at the first occurrence of Customer,
+    + ends at the last touch within any of our databases (e.g. last JSON received, last update of a status in DB).
+
+#### Brief session status description
+- `A_` - Abandonment
+- `O_` - Order without involing us; Direct Orders
+- `R_` - Recovered Orders (based on e-mail recoveries)
+- `Q_` - Recovered Orders (based on OnSite activity)
+- `B_` - an inmendiae e-mail is requested by OnSite
+- `C_` - click happened, but nothing else
+- `_S` - perfectly synched data
+- `_J` - inconsistent data; we canâ€™t create an e-mail for this session; still may have valuable and accurate captured data
+- `_O` - Customer opted Out from an e-mail for this session
+
+## Questions
+
+**Provide us** 
+
+1. An insight into the characteristics of sessions for each clients you identify; e.g. average session time. Any other you find? 
+**Focus on DATA1.**   
+
+
+2. Top-10 products of large-volume clients? Focus on DATA1.
+3. Identify certain Customer-profiles within a Client. Use DATA2.
+4. Identify certain Customer-profiles across our Clients, supposed there are some (e.g. relatively high number of people are customers of both ikea.no and Interflora.no). 
+**Use DATA2.**
+
+
+
+**Please provide us with**
+
+5. Answers to the questions
+6. Tools you used for getting your results. Reasoning on your choice of tools.
+7. Any defects you identified when looking at the data.
+8. Any hints on what data would have helped you to perform the task
+      +  Easier,
+      +  In a broader perspective
+Any scripts / pseudo-code / algorithm / reference you may share with us, are welcome
+
+## Solutions
+
+### Preparing the data for analysis
+
+In order to be able to do the analysis in a proper way I had to perform a couple of preparation and cleansing operations. I received the data (DATA1 and DATA2) in exported csv format in multiple files. My intension had been to create from these csvs’ four ‘RData’ files (R data sets), namely:   
+- data1_base.RData     
+- data1_session.RData      
+- data2_base.RData       
+- data2_session.RData    
+
+Basically, data1_base.RData and data2_base.RData are the original data coming from cvs files. Of course type conversions and required cleansing operations have been done. In the original structure everything was treated as character.    
+
+I started with adding column names to dataset: ("client", "currency", "amount", "status", "start_date", "end_date", "ordered")
+
+In more detail, 
+- data1_base.RData: is comprised of        
+  CAPTURE_01.csv,   CAPTURE_02.csv, CAPTURE_04-06.csv         
+  CAPTURE_03.csv          
+  CAPTURE_07-09.csv, CAPTURE_10-12.csv         
+On the first group (CAPTURE_01.csv,   CAPTURE_02.csv, CAPTURE_04-06.csv) I just added proper date format to  "start_date" and "end_date".
+On the second group  (CAPTURE_03.csv) I needed to format the date properly. It had other format than in the previous case. I also had to reformat “amount” and “ordered” back to char.
+In the case of the third group (CAPTURE_07-09.csv, CAPTURE_10-12.csv), the “ordered” column was missing. So I added it according to the email specification. I also added the proper date format.
+
+After that all Data1 was binded together in one dataset: data1_base.RData. 
+Having data1_base.RData in a proper way I prepared from it data1_session.RData. I added new columns such as “sessiontime”. Also I did convenient data formatting when was needed.
+Additionally, in some records the “amount” was NULL. I decided to replace it with 0.     
+
+In case of data2_base.csv my approach was similar: I added the column names, than I binded the data in the dataset. In data2_session.csv I did the necessary time conversions. 
+Later on during the analysis, I added some more columns to assist my research. 
+Nevertheless, there were some more missing values. For example, “customer” was NULL for about 10% of the records. I decided to filter them out from my research.
+
+
+### Load the data in datasets
+Initialise Data1
+
+```{r - Data1init}
+data1Columns <- c("client", "currency", "amount", "status", "start_date",
+                "end_date", "ordered")
+
+data17Columns <- c("client", "currency", "amount", "status", "start_date",
+                "end_date")
+```
+
+
+```{r - data1-base-load-1,2}
+data1_1_base <- fread("CAPTURE_01.csv", col.names = data1Columns)
+data1_2_base <- fread("CAPTURE_02.csv", col.names = data1Columns)
+data1_456_base <- fread("CAPTURE_04-06.csv", col.names = data1Columns)
+data1_base <- bind_rows(data1_1_base, data1_2_base, data1_456_base)
+
+
+data1_base$start_date <- ymd_hms(data1_base$start_date)
+data1_base$end_date <- ymd_hms(data1_base$end_date)
+
+```
+
+```{r - data1-base-load-3}
+data1_3_base <- fread("CAPTURE_03.csv", col.names = data1Columns)
+
+data1_3_base$client <- as.character(data1_3_base$client) #error int instead of char
+data1_3_base$start_date <- dmy_hm(data1_3_base$start_date)
+data1_3_base$end_date <- dmy_hm(data1_3_base$end_date)
+data1_3_base$ordered <- as.character(data1_3_base$ordered) #error int instead of char
+
+```
+
+```{r - data1-base-load-7-}
+data1_7_base <- fread("CAPTURE_07-09.csv", col.names = data17Columns)
+data1_10_base <- fread("CAPTURE_10-12.csv", col.names = data17Columns)
+data1_base_second <- bind_rows(data1_7_base, data1_10_base)
+
+data1_base_second <- data1_base_second %>%
+  mutate(ordered = ifelse(substr(status,1,1) %in% c("O","Q", "R"), 1, 0)) 
+
+data1_base_second$start_date <- ymd_hms(data1_base_second$start_date)
+data1_base_second$end_date <- ymd_hms(data1_base_second$end_date)
+data1_base_second$ordered <- as.character(data1_base_second$ordered) #error int instead of char
+
+```
+
+
+```{r - bind-base}
+data1_base <- bind_rows(data1_base, data1_3_base, data1_base_second)
+```
+
+
+```{r - data1-session-prepare}
+
+data1_session <- data1_base %>%
+  mutate(amount = ifelse(amount=='NULL', 0, amount)) 
+data1_session <- data1_base %>%
+  mutate(sessiontime = round((data1_base$end_date-data1_base$start_date),2))
+data1_session <- data1_session %>%
+  mutate(monthsession = month(data1_base$end_date))
+data1_session <- data1_session %>%
+  mutate(monthabb = month.abb[monthsession])
+
+data1_session$client <-as.factor(data1_session$client)
+data1_session$currency <- as.factor(data1_session$currency)
+data1_session$amount <- as.double(data1_session$amount)
+data1_session$ordered <- as.logical(as.numeric(data1_session$ordered))
+data1_session$monthabb <- as.factor(data1_session$monthabb)
+
+#data1_session$monthsession <-as.factor(data1_session$monthsession)
+#data1_session$sessiontime <- as.difftime(data1_session$sessiontime, units="mins")
+
+```
+
+
+**Loading Data2**
+```{r - Data2init }
+data2Columns <- c("sessionID", " client", "customer", "currency", "amount", "status","start_date", "end_date", "productValue","quantity", "productID", "productName", "productDescription")
+```
+
+```{r - load Data2}
+data2_base <- fread("03.csv", col.names = data2Columns)
+for(i in c("03.csv", "03.csv", "04.csv", "05.csv","06.csv","07.csv","08.csv", "09.csv"))
+{
+  data2_temp <- fread(i, col.names = data2Columns)
+  data2_base <- bind_rows(data2_base, data2_temp)
+  }
+
+```
+
+**Prepare Data2**
+```{r - data2-session-prepare}
+data2_session <- data2_base
+
+data2_session$client <-as.factor(data2_session$client)
+data2_session$currency <- as.factor(data2_session$currency)
+data2_session$amount <- as.double(data2_session$amount)
+data2_session$start_date <- ymd_hms(data2_session$start_date)
+data2_session$end_date <- ymd_hms(data2_session$end_date)
+data2_session$productValue <- as.double(data2_session$amount)
+data2_session$quantity <- as.double(data2_session$quantity)
+data2_session$productID <- as.factor(data2_session$productID)
+
+```
+
+
+
+

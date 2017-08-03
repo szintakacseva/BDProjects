@@ -1,0 +1,253 @@
+---
+title: "ReCheckIt Demo - Question 4"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+## Getting started
+Let's load the packages.
+
+```{r load-packages, message=FALSE}
+library(devtools)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+```
+
+Load the data.
+
+```{r - load-data}
+#load("data1_base.RData")
+#load("data1_session.RData")
+load("data2_base.RData")
+load("data2_session.RData")
+```
+
+## Question
+4. Identify certain Customer-profiles across our Clients, supposed there are some (e.g. relatively high number of people are customers of both ikea.no and Interflora.no). 
+Use DATA2.
+
+## Solution
+In this section I identified as customer profile across clients if one customer belongs to one or more clients. After that I would like to verify if  customers belonging to more clients behave in the same way or differently when it comes to successfullness of orders.
+In this analysis I also follow my initial aim of verifying the successfullness of transactions from different points of view.   
+
+
+
+First of all, let's have an initial look at data, nr of interactions group by customer,client and arrange the resulted dataset by the nr of interactions. In this analysis, I haven't done the summation by quantities.
+
+
+```{r - initial count data2}
+data2_40 <- data2_session %>%
+  select( client, customer) %>%
+   group_by(customer,client) %>%
+  summarise(nrOfInteractions = n()) %>%
+  arrange(desc(nrOfInteractions))
+
+head(data2_40,10)
+
+```
+I take out customer = NULL from the analysis as NULL stands for a lot of customers. At this point there is no a better option to treat them.
+
+```{r - initial count without NULL}
+data2_40 <- data2_session %>%
+  select( customer, client) %>%
+  filter(customer != "NULL") %>%
+   group_by(customer,client) %>%
+  summarise(nrOfInteractions = n())%>%
+  arrange(desc(nrOfInteractions))
+ 
+head(data2_40,10)
+```
+
+There is a customer (47967	48126a6d0e9f2d1b) with the highest number of interactions. Later on this customer could be examined in detail.
+
+Then I identify the number of clients for a customers. 
+
+```{r - identify nr of clients for customers}
+data2_41 <- data2_40 %>%
+  select( customer, client) %>%
+   group_by(customer) %>%
+  summarise(nrofClients = n()) %>%
+  arrange(desc(nrofClients))
+
+head(data2_41,10)
+tail(data2_41,10)
+```
+
+I have found that there are a couple of customers who are clients of two clients. The majority of customers belongs to just one client.  
+
+Particularly,here we see that we have 67 customers belonging to two clients and 24750 belonging to just one client.
+
+```{r -take the customers who are the clients of more sellers}
+data2_42_2 <- data2_41 %>%
+  select( customer, nrofClients) %>%
+  filter(nrofClients==2)
+
+head(data2_42_2,10)
+count(data2_42_2)
+
+```
+
+
+```{r - take clients who are clients of just one seller}
+
+data2_42_1 <- data2_41 %>%
+  select( customer, nrofClients) %>%
+  filter(nrofClients==1)
+
+head(data2_42_1,10)
+count(data2_42_1)
+```
+As a result of analysis, the customers are classified in two clusters. One cluster contains 67 observations, customers belonging two two clients. The other cluster is of 24750 observations, customers belonging to just one client.    
+
+In the rest of my analysis I would like to verify the behaviour of customers from the point of view of successfulness when they perform shopping in the webshops of different clients. More clearly, if a customer has successful orders in one client webshop, has those particular customer successful transactions in the other client's webshop as well?
+
+Below are two technical steps. I added two columns, namely "success" and "nrOfClient" to the main data2 dataset.
+
+```{r - add succsessfulnes column to data2_session}
+data2_session <- data2_session %>%
+ mutate(success = ifelse(substr(status,1,1) %in% c("Q", "R"), 1, 0))
+```
+
+```{r - add nrOfClients column to data2_session}
+data2_session <- data2_session %>%
+ mutate(nrOfClients = ifelse(is.element(customer, data2_42_2$customer), 2, 1))
+```
+
+As I am interested in the successfulness of those customers orders, I queried their status. In the first dataset for customers of 2 clients and in the next dataset for the customers of 1 client. This is a technical step needed for my analysis.
+
+```{r - filter customers who are clients of more clients from the main dataset}
+data2_43_2 <- data2_session %>%
+  select( customer, client, status) %>%
+  filter(customer != "NULL", is.element(customer, data2_42_2$customer))%>%
+  arrange(customer, client, status)
+   
+head(data2_43_2,10) 
+
+```
+
+```{r - filter customers who are clients of just one client}
+data2_43_1 <- data2_session %>%
+  select( customer, client, status) %>%
+  filter(customer != "NULL", is.element(customer, data2_42_1$customer))%>%
+  arrange(customer, client, status)
+   
+head(data2_43_1,10)
+
+```
+
+After that, I calculated the nr of successful transactions for the customers from the 2-clients cluster. 
+
+```{r - filter the successfullnes of 2 clients customers }
+data2_44_2_succ <- data2_43_2 %>%
+  select( customer, client, status) %>%
+  filter( is.element(substr(status,1,1), c("Q", "R"))) %>%
+  arrange(customer, client, status)
+   
+data2_44_2_succ
+count(data2_44_2_succ) 
+ 
+
+```
+I found that there are just 6 of successful transactions.
+
+After that I, I calculated the nr of unsuccessful transactions for the customers from the 2-clients cluster. 
+
+```{r - filter the unsuccessfullnes of 2 clients customers}
+data2_44_2_unsucc <- data2_43_2 %>%
+  select( customer, client, status) %>%
+  filter( !is.element(substr(status,1,1), c("Q", "R"))) %>%
+  arrange(customer, client, status)
+
+head(data2_44_2_unsucc,10)
+count(data2_44_2_unsucc)
+```
+I found that there are just 793 of unsuccessful transactions.
+
+After that I, I calculated the nr of successful transactions for the customers from the 1-client cluster.
+
+```{r - filter the successfullnes of 1 clients customers}
+data2_44_1_succ <- data2_43_1 %>%
+  select( customer, client, status) %>%
+  filter( is.element(substr(status,1,1), c("Q", "R"))) %>%
+  arrange(customer, client, status)
+   
+head(data2_44_1_succ,10)
+count(data2_44_1_succ) 
+
+```
+I found that there are just 736 of successful transactions coming from customers from the 1-client cluster.
+
+After that I, I calculated the nr of unsuccessful transactions for the customers from the 1-client cluster.
+
+```{r - filter the unsuccessfullnes of 1 clients customers}
+data2_44_1_unsucc <- data2_43_1 %>%
+  select( customer, client, status) %>%
+  filter( !is.element(substr(status,1,1), c("Q", "R"))) %>%
+  arrange(customer, client, status)
+   
+head(data2_44_1_unsucc, 10)
+count(data2_44_1_unsucc) 
+
+```
+I found that there are just 147014 of unsuccessful transactions coming from customers from the 1-client cluster.
+
+Let's see some statistics.
+
+```{r - general statistics}
+data2_4_stat <- data2_41 %>%
+  select( customer, nrofClients) %>%
+   group_by(nrofClients) %>%
+  summarise(nrOfCustomers = n())
+
+data2_4_stat <- data2_4_stat %>%
+  mutate(percentage = as.double(nrOfCustomers/sum(nrOfCustomers)*100))
+data2_4_stat <- data2_4_stat %>%
+  mutate(success = ifelse(nrofClients==1, as.integer(count(data2_44_1_succ)), as.integer(count(data2_44_2_succ))))
+data2_4_stat <- data2_4_stat %>%
+  mutate(unsuccess = ifelse(nrofClients==1, as.integer(count(data2_44_1_unsucc)), as.integer(count(data2_44_2_unsucc))))
+
+data2_4_stat
+```
+
+The first row of the statistics table shows the 1-client customer cluster's statistics. There are 24750 customers belonging to just one client. 1-client customer cluster has 736 successful transactions and 147014 unsuccessful transactions.   
+The second row of the statistics table shows the 2-client customer cluster's statistics. There are 67 customers belonging to 2 clients. 2-client customer cluster has 6 successful transactions and 793 unsuccessful transactions.
+
+
+Going back to my initial assumption, I wanted to analyse the behaviour of the customers belonging to the 2-client cluster. Are they behave in a similar way or differently regarding to the clients? For simplicity, I just have a look of the 2-client customers who had successful transactions. Are their transactions successful for the other client as well?
+
+```{r -- check those customers products other}
+data2_45_2 <- data2_session %>%
+  select( customer, client, currency, status) %>%
+  filter( is.element(customer, data2_44_2_succ$customer)) %>%
+  arrange(customer, client, status)
+   
+data2_45_2
+
+```
+
+From this query, I observe that customer with id='33956c10f87b9261' has a successful transaction for client "65224" and two unsuccessful tansactions for client "23611".
+
+## Final thoughts and further study
+As a final thought, the resulted dataset is too small to predict the customers' behavious across client. More data is needed for accurate predictions. But the client "65224" is once more successful like in case of Q1-currency analysis and Q3 analysis.   
+
+**Futher study**
+- Playing more with other “status” transactions than (“O”, “Q”, “R”).  Understand better customers behavior.    
+- Try to cluster customers using machine learning clustering algorithms.      
+- Perform analysis around the “amount” of transactions.      
+- More research on customers’ behavior on different client’s websites. Something similar what I tried in Q4.     
+- Definitely playing around with client “65224” to have a better insight why behaves differently than others.     
+- Using regression and covariance analysis to identify certain dependencies across the transaction’s variables. I performed basic statistics to get the feel of the data.     
+
+
+
+
+
+
+
+
+

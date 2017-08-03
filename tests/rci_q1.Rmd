@@ -1,0 +1,330 @@
+---
+title: "ReCheckIt Demo Question 1"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document: default
+---
+
+## Getting started
+Let's load the packages.
+
+```{r load-packages, message=FALSE}
+library(devtools)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(stringr)
+```
+
+Let's load the already prepared DATA1.
+
+```{r - load-data}
+load("data1_base.RData")
+load("data1_session.RData")
+
+```
+
+
+## Data
+
+[DATA1 dataset](https://s3-eu-west-1.amazonaws.com/bigdatatest.recheckit.com/testData1_9f17d8b470.zip)        
+   
+- a full year with SESSION data
+- filtered for a few clients
+- filtered for relevant data fields times represent early departures/arrivals.
+    + no personalia
+    + no url
+   
+
+[DATA2 dataset](https://s3-eu-west-1.amazonaws.com/bigdatatest.recheckit.com/testData2_397ba1fea.zip)
+
+- a week of SESSIONS WITH PRODUCTS data
+- includes sessions and products together
+- hashed e-mail
+- 3 clients
+
+#### Vocabulary we use in these tasks
+- `Client`: a Client of ReCheckit, e.g. ikea.no
+- `Customer`: a client of our client, e.g. a person visiting ikea.no
+- `Session lifecycle`:
+    + starts at the first occurrence of Customer,
+    + ends at the last touch within any of our databases (e.g. last JSON received, last update of a status in DB).
+
+#### Brief session status description
+- `A_` - Abandonment
+- `O_` - Order without involing us; Direct Orders
+- `R_` - Recovered Orders (based on e-mail recoveries)
+- `Q_` - Recovered Orders (based on OnSite activity)
+- `B_` - an inmendiae e-mail is requested by OnSite
+- `C_` - click happened, but nothing else
+- `_S` - perfectly synched data
+- `_J` - inconsistent data; we can’t create an e-mail for this session; still may have valuable and accurate captured data
+- `_O` - Customer opted Out from an e-mail for this session
+
+
+
+## Question 1. 
+
+1. An insight into the characteristics of sessions for each clients you identify; e.g. average session time. Any other you find?       
+**Focus on DATA1.**   
+
+
+## Solution
+
+Before doing the analysis, I added the new variable "success" to the dataset.
+
+```{r - adding the success column}
+data1_session <- data1_session %>%
+ mutate(success = ifelse(substr(status,1,1) %in% c("Q", "R"), 1, 0))
+```
+
+
+### Average sessiontime calculation
+
+To start with, here is an initial view on Data1.
+
+```{r - initial view of Data1 }
+data1_view <- data1_session %>%
+  select(client, amount, status, sessiontime, monthabb, ordered)
+  
+head(data1_view,10)  
+```
+
+
+
+Let's start with a quick summary: nr of transactions per client. No filters are applied at this stage.  
+
+```{r - summary per client}
+data1_summary_client <- data1_session %>%
+  select(client, status, sessiontime, monthabb) %>%
+  group_by(client) %>%
+  summarise(nrOfInteractions = n()) %>%
+  arrange(desc(nrOfInteractions))
+
+data1_summary_client
+```
+As a result of this table I can see that the biggest client taking into account the number of interactions is with the id '23611'. Then '65224' followed by '28279'.      
+
+Before calculating the average sessiontime for the three clients I observed that the 'amount' is NULL for a couple of records.
+
+```{r - checking amount}
+data1_amount <- data1_session %>%
+  select(client, amount) %>%
+  filter(is.na(amount))
+
+count(data1_amount)
+```
+
+This is approximately 10% of all tha Data1. Missing amount from the transactions raises the question that it is a valid transaction or not. Should I take into account into my sessiontime summary calculation or not? I decided to take into account. But before that I replaced the missing values with 0.
+
+```{r - replacing missing values with 0}
+
+data1_session <- data1_session %>%
+ mutate(amount = ifelse(is.na(amount), 0, amount))
+```
+
+After that I calculated the basic statistics for the sessiontime: average, min, max, median and standard deviation. Additionally I calculated the volume (summation of the amount). The volume is just an approximation as different currencies are not taken into account. Sessiontime is in minutes.
+
+```{r - statistics}
+data1_st_not <- data1_session %>%
+  select(client, amount,status, sessiontime, monthabb) %>%
+  group_by(client) %>%
+  summarise(count= n(), 
+            avg = round(mean(as.numeric(sessiontime/60)),2), 
+            min = round(min(as.numeric(sessiontime/60)),2), 
+            max = round(max(as.numeric(sessiontime/60)),2),
+            median = round(median(as.numeric(sessiontime/60)),2),
+            sd = round(sd(as.numeric(sessiontime/60)),2),
+            volume = sum(amount))
+
+data1_st_not
+```
+
+Looking at the statistics I observed that there are some extreme values such as 149326 minutes for a session and 0 for minimum sessiontime.
+
+Now lets have a closer look to those extreme values.
+
+```{r - outliers }
+data1_max <- data1_session %>%
+  select(sessiontime, client, status, ordered) %>%
+  arrange(desc(sessiontime))
+
+head(data1_max, 10)
+```
+
+I see that there are some really big sessiontimes. The biggest is 8959594 secs which is approx. 103 days.
+Now I have to make a decision which values to be considered as outlieres. I choose to consider the first 'normal value' the biggest sessiontime with ordered TRUE.
+
+```{r - biggest sessiontime ordered}
+data1_max <- data1_session %>%
+  select(sessiontime, client, status, ordered) %>%
+  filter(ordered ==TRUE) %>%
+  arrange(desc(sessiontime))
+
+head(data1_max, 10)
+
+```
+Following my assumption the biggest valid sessiontime is 429376 second.         
+
+Now I am doing the same procedure for the minimum sessiontime with the ordered TRUE.
+
+
+```{r - lowest sessiontime ordered}
+data1_min <- data1_session %>%
+  select(sessiontime, client, status, ordered) %>%
+  filter(ordered ==TRUE) %>%
+  arrange(sessiontime)
+
+head(data1_min, 10)
+
+```
+
+I see that the minimum valid sessiontime is 300 seconds, 5 minutes.     
+
+Finally, I recalculate my initial staistics taking into account just the valid sessiontimes.
+
+
+```{r - refined statistics}
+data1_stat_valid <- data1_session %>%
+  select(client, amount,status, sessiontime, monthabb) %>%
+  filter(as.numeric(sessiontime)>=300, as.numeric(sessiontime)<=430000) %>%
+  group_by(client) %>%
+  summarise(count= n(), 
+            avg = round(mean(as.numeric(sessiontime/60)),2), 
+            min = round(min(as.numeric(sessiontime/60)),2), 
+            max = round(max(as.numeric(sessiontime/60)),2),
+            median = round(median(as.numeric(sessiontime/60)),2),
+            sd = round(sd(as.numeric(sessiontime/60)),2),
+            volume = sum(amount))
+
+data1_stat_valid
+```
+
+Now I have much better, refined statistics. It is interesting to spot thst client "65224" has considerably less sessiontime than the other two clients.
+
+
+***Plotting the result summary***
+
+Firstly, for the average sessiontime.
+
+```{r - average sessiontime per client}
+ggplot(data=data1_stat_valid, aes(x=client, y=avg, fill=client))+
+  geom_bar(width = 0.3, stat="identity",colour="black")  +
+  ggtitle("Average sessiontime per client") +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+  
+
+```
+
+
+Secondly, for the minimu sessiontime.
+
+```{r - minimum valid sessiontime per client in minutes}
+ggplot(data=data1_stat_valid, aes(x=client, y=min, fill=client))+
+  geom_bar(width = 0.3, stat="identity",colour="black")  +
+  ggtitle("Minim valid sessiontime per client") +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+Lastly, for max sessiontime.
+
+```{r}
+ggplot(data=data1_stat_valid, aes(x=client, y=max, fill=client))+
+  geom_bar(width = 0.3, stat="identity",colour="black")  +
+  ggtitle("Max valid sessiontime per client") +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+```
+
+
+
+## Final thoughts on sessiontime analysis
+1. Probabably there is no sense to alert customers with very short (less than 5 minutes) or very big sessiontime (more than 100 hours).
+2. The minim of a valid sessiontime is 5 minutes across all the clients. 
+3. At the same time the max sessiontime difference is semnificative especially in case of client "28279" and "65224". In this case could be intreseting to see their product range and their customer segments. Further analysis is needed.
+
+## Data1 analysis based on currency
+
+Research question: I was interested to see the successfullness for different currency type, namely, assuming that customers from different countries and cultures bahave differently when it comes to email alerts.
+
+For that to happen, I did two analysis. Firstly, I checked the 'ordered' rate for currency types. Below is the result of the segmentation of transactions by "currency"" and "ordered"" for all the tree customers. 
+
+```{r - segmentation by currency, ordered}
+data1_client_currency_o <- data1_session %>%
+  select( client, currency, ordered) %>%
+  filter(currency !="NULL") %>%
+   group_by(client, currency, ordered) %>%
+   summarise(count = n()) %>%
+  arrange(client, currency, ordered)
+
+head(data1_client_currency_o, 30)
+
+
+```
+
+To understand better, I added the percentages.
+
+```{r - adding the percentage}
+data1_client_currency_o_p <- data1_client_currency_o %>%
+  group_by(client, currency) %>%
+  mutate(percentage = as.integer(count/sum(count)*100))
+
+head(data1_client_currency_o_p, 30)
+```
+
+To be more visual, I plotted the results.
+
+```{r - plotting the results}
+ggplot(data=data1_client_currency_o_p, aes(x=client, y=percentage,fill=currency))+
+  geom_bar(width = 0.3, stat="identity", position=PositionFill,colour="black")  +
+  ggtitle("Percentage per clients per currency") 
+  
+
+```
+
+Clients order in the plot is: 23611, 28279, 65224.
+
+What is interesting to see from the table and from the plot is that client  "65224" behaves differently than others. It has less 'FALSE' order than others.
+
+After that I have done the same analysis for the success factor. Before that I added the variable 'success' to the data1.
+
+
+
+```{r - - segmentation by currency, success}
+data1_client_currency_s <- data1_session %>%
+  select( client, currency, success) %>%
+  filter(currency !="NULL") %>%
+   group_by(client, currency, success) %>%
+   summarise(count = n()) %>%
+  arrange(client, currency, success)
+
+head(data1_client_currency_s, 30)
+
+```
+
+To understand better, I added the percentages.
+
+
+```{r - adding the percentage success}
+data1_client_currency_s_p <- data1_client_currency_s %>%
+  group_by(client, currency) %>%
+  mutate(percentage = as.integer(count/sum(count)*100))
+
+head(data1_client_currency_s_p, 30)
+```
+
+## Final thougts on currency analysis
+
+What we can see from this data is that in most of the cases the success rate is about 1%. Except in case of the currency CHF, where is no success at all. The other thing is the client "65224" where the success rate is about 3%, which is higher than in other cases. Remember, in previous analysis (order rate)  client "65224" was different also. order ="TRUE"" was much higher than in case of other clients.  
+
+
+
+
+
+
+
