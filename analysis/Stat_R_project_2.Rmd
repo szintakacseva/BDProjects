@@ -1,0 +1,299 @@
+---
+title: "Statistical inference with the GSS data"
+output: 
+  html_document: 
+    fig_height: 5
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = TRUE, results = TRUE)
+```
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+if(!require(dplyr)){install.packages("dplyr")}
+if(!require(ggplot2)){install.packages("ggplot2")}
+if(!require(tidyr)){install.packages("tidyr")}
+if(!require(lubridate)){install.packages("statsr")}
+```
+
+### Load data
+
+```{r load-data}
+load("gss.Rdata")
+```
+
+* * *
+
+## Part 1: Data
+
+<i>The General Social Survey (GSS) is a sociological survey used to collect information and keep a historical record of the concerns, experiences, attitudes, and practices of residents of the United States...The data collected about this survey includes both demographic information and respondents' opinions on matters ranging from government spending to the state of race relations to the existence and nature of God.</i> (Wikipedia)
+
+The GSS datasets are publicly available, and can be found in http://gss.norc.org.
+
+As for data collection, from the project description, we can find out
+that a small group of households that was randomly selected from all households across the United States were interviewed, one person from one houshold. All households had an equal chance to be selected. The survey is conducted face-to-face with an in-person interview.
+
+Note that the dataset used in this analysis was those created by Duke MOOC course in Coursera (introduction inferential statistics). so the dataset was provided with modifications having in mind to accomodate to course material as mentioned: <i>"Unlike the full General Social Survey Cumulative File, we have removed missing values from the responses and created factor variables when appropriate to facilitate analysis using R."</i>
+
+Data Citation    
+Smith, Tom W., Michael Hout, and Peter V. Marsden. General Social Survey, 1972-2012 [Cumulative File]. ICPSR34802-v1. Storrs, CT: Roper Center for Public Opinion Research, University of Connecticut /Ann Arbor, MI: Inter-university Consortium for Political and Social Research [distributors], 2013-09-11. doi:10.3886/ICPSR34802.v1       
+Persistent URL: http://doi.org/10.3886/ICPSR34802.v1
+
+* * *
+
+## Part 2: Research question
+
+In my research, I am interested in finding more about how someone's opinion on social spending is influenced by the childhood's social background.
+Concretely, I would like to know if individuals' opinion vary on the amount of spending on the space program if they come from different social background. 
+In the study there are two variables that could help me answer this question:
+
+- Explanatory variable: incom16: Rs family income when 16 years old ("...when you were 16 years old, compared with American families in general then, would you say your family income was far below average, below average, average, above average, or far above average?)
+
+- Response variable: natspac: Space exploration program ("... whether you think we're spending too much money on it, too little money, or about the right amount. a. Space exploration program.")
+
+Is there a relationship between the economical situation to which someone belonged in childhood and their concern regarding the spending on space exploration program?
+
+Additionally, just for curiosity, I had a look on the gender "sex" - variable in gss dataset as well. Is the 'sex' as explanatory variable influences the opinion on spending on the space program? I have done some exploratory analysis on gender, no inference.
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+The gss dataset contains a relatively large number of variables (114) and observations (57061) as you can see below:
+
+```{r - dimensions}
+dim(gss)
+```
+
+
+Firstly, here is the summary of explanatory variable: income16. 
+```{r - summary income16}
+summary(gss$incom16)
+
+```
+
+As the 'Lived In Institution' category is tiny, just 10 respondents I decided to left out from further analysis.
+
+Then the summary of response variable: natspac.
+
+```{r - summary natspac}
+summary(gss$natspac)
+```
+
+There are a couple of NA's in both of the variables. I omit them from further analysis.
+
+```{r - not null}
+gss_notnull <- gss %>%
+  select(natspac, incom16, sex) %>%
+  filter(!is.na(gss$incom16), !is.na(gss$natspac), !is.na(sex),  gss$incom16 != "Lived In Institution")
+
+head(gss_notnull, 10)
+```
+
+Summary of the explanatory variable (incom16) and the associated plot. 
+
+```{r - income16-total}
+gss_incom16 <- gss_notnull %>%
+  select(natspac,incom16) %>%
+  group_by(incom16) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+  
+gss_incom16
+```
+
+Not  suprasingly, this summary illustrates well the social categories. The majority of respondents belong to the average, followed by below average and above categories. 
+The same conclusion becomes visually apparent in the following plot.
+
+```{r - incom16- histogram}
+
+ggplot(gss_incom16, aes(x=incom16, fill = incom16)) +
+  geom_bar(aes(y = count),
+           stat='identity', position='stack') +
+  scale_fill_brewer(type=seq, palette = "Blues")+
+  coord_flip() +
+  theme(legend.position = 'none') +
+  labs(title = "Childhood's wellbeing", x='Income when 16', y='Number of people')
+
+```
+
+
+
+
+Here is the summary of the respondent variable (natspac) and the associated plot.
+
+
+```{r - natspac}
+gss_natspac <- gss_notnull %>%
+  select(incom16, natspac) %>%
+  group_by(natspac) %>%
+  summarise(count = n())
+
+gss_natspac
+```
+
+```{r - natspac-histogram}
+ggplot(gss_natspac, aes(x=natspac, fill = natspac)) +
+  geom_bar(aes(y = count),
+           stat='identity', position='stack') +
+  scale_fill_brewer(type=seq, palette = "Reds")+
+  coord_flip() +
+  theme(legend.position = 'none') +
+  labs(title = "opinion on space program spending", x='Spending on space program', y='Number of people')
+```
+
+The first point that stands out is that there are more respondants belonging to the group thinking that "Too Much"" spending has been done by government on space program comparing to "About Right" and "Too Little" opinions.
+
+
+As I dive into the details of my research question, I can see the opinions of different social groups. The opinions seems to be slightly polarised. Those being far above average seems to have the opinion that spendig is too little comparing to those from average and below average groups who's opinion is that the spending is too much.
+
+
+```{r - income16, natspac}
+gss_in <- gss_notnull %>%
+  select(natspac,incom16) %>%
+  group_by(natspac,incom16) %>%
+  summarise(count = n())
+
+head(gss_in, 15)
+```
+
+```{r - opinion plot}
+ggplot(gss_notnull, aes(x = incom16, y = natspac, colour=incom16)) +
+  geom_count()+
+  scale_size_area(max_size = 10)+
+  theme(axis.text.x=element_text(angle=30,hjust=1,vjust=0.5))+
+  labs(title = "Opinion on space program spending", x='Childhood wellbeing', y='Spending on space program')+
+  guides(fill="none")
+```
+
+The picture becomes more polarised if we split the respondents to male and female respondents. It is evident that males are more concerned to space program than females in the majority of social groups. See the summary and the plot below.
+
+
+
+```{r - opinion by incom16 and gender}
+gss_is <- gss_notnull %>%
+  select(natspac,incom16, sex) %>%
+  group_by(natspac,incom16, sex) %>%
+  summarise(count = n())
+```
+
+
+
+```{r - opinion plot by gender}
+ggplot(gss_notnull, aes(x = incom16, y = natspac, colour=incom16)) +
+  geom_count()+
+  scale_size_area(max_size = 10)+
+  facet_grid(. ~ sex)+
+  theme(axis.text.x=element_text(angle=30,hjust=1,vjust=0.5))+
+  labs(title = "Opinion on space program spending", x='Childhood wellbeing', y='Spending on space program')+
+  guides(fill="none")
+```
+
+Although it is apparent that males are more concerned than females on space program spending, in this study I stick to the original asumption.
+
+## Part 4: Inference
+
+Once again, I am interested in finding out if there is any evidence of a relationship between the social background someone belonged when was 16, and their opinion on space program spending.
+
+To perform the statistical analysis, I formulate this question as the following hypothesis:
+<ol>
+<li> $H_0$: There is nothing going on, and opinion on space program spending is independent. Opinion does not vary by childhood's social background.  </li>
+<li> $H_A$: There is something going on, and childhood's social background and opinion on space program spending are indeed dependent. Opinion does vary by childhood's social background. </li>
+</ol>
+
+I use the Chi-Square two-way table independence test for a 5% significance level as I am comparing two categorical variables. 
+A two-way table describes counts for combinations of outcomes for two variables. When
+considering a two-way table, I often would like to know, are these variables related
+in some way. That is, are they dependent versus independent.
+Chi-Square test is appropriate for this research question, since I am interested in comparing if the observed counts are statistically different from the expected counts. In this case, a large deviation between expected and observed would provide evidence that the alternative hypothesis is true, and that the two categorical variables are indeed dependent.
+
+
+<b>Independence</b>
+The samples are both random, unrelated, and from less than 10% of the pop-
+ulation, each case only contributes to one cell in the table. So independence between observations is reasonable.   
+Sample size: All expected counts are at least 5.   
+
+
+In order to perform the analysis, firstly, I prepare the two-way table for observed values.
+
+```{r - two-way table, observed values}
+#prepare two-way table
+gss_in_spread <- spread(gss_in, key = "incom16", value = "count")
+
+#adding rowtotal
+gss_obs <- merge(gss_in_spread, gss_natspac)
+gss_obs <- gss_obs %>%
+  rename(rowtotal = count)
+
+#adding column total
+gss_obs$natspac <- as.character(gss_obs$natspac)
+gss_obs[4,] = c("columntotal", colSums(gss_obs[,2:7]))
+gss_obs$natspac <- as.factor(gss_obs$natspac)
+
+gss_obs <- gss_obs %>%
+  rename(`FBAverage` = `Far Below Average`, `BAverage` = `Below Average`, `AAverage` = `Above Average`, `FAverage` = `Far Above Average`)
+
+gss_obs
+```
+
+Secondly, I prepare the two-way table for expected values.
+```{r - expected values}
+#gss_expected <- 
+total <- as.integer(gss_obs[4,7])
+nrrow <- as.integer(nrow(gss_obs))-1
+nrcol <- as.integer(ncol(gss_obs))-1
+rowtotal <- nrrow + 1
+coltotal <- nrcol + 1
+
+expected_fun <-function(x, nrrow, nrcol,total){
+  for (i in 1:nrrow) {
+    for (j in 2:nrcol) {
+      
+      x[i,j] <- ceiling(as.integer(x[rowtotal,j])*as.integer(x[i,coltotal])/as.integer(total))
+  }
+  }
+  return (x)
+}
+
+gss_exp <- expected_fun(gss_obs, nrrow, nrcol, total)
+
+gss_exp
+```
+
+As i am dealing with people the row and column totals can differ slightly because of the rounding of values.   
+
+As a last step, I calculate the Chi-Square, the degree of freedom (df) and the associated p_value. 
+
+```{r - chi_square}
+chi_square_fun <-function(x,y, nrrow, nrcol){
+  dmx <- data.matrix(x[1:nrrow, 2:nrcol])
+  dmy <- data.matrix(y[1:nrrow, 2:nrcol])
+  chi_square <- sum((dmx-dmy)^2/dmy)
+  
+  return (chi_square)
+}
+
+chi_square <- chi_square_fun(gss_obs, gss_exp, nrrow, nrcol)
+df <- (3-1)*(5-1)
+
+p_value = pchisq(chi_square, df=df, lower.tail = F)
+```
+
+chi_square = `r chi_square`   
+df = `r df`    
+p_value = `r p_value`    
+
+I observed that `r p_value` is significant smaller than 0.05. Having such a small value, I reject the $H_0$ (Null) hypothesis in favour of the $H_A$ (Alternative) hypothesis. 
+In other words, I would conclude that there is convincing evidence that both variables are indeed dependent.    
+
+* * *
+
+## Part 5: Final conclusion
+The fact that the Chi-Square test statistic just performed favours the alternative hypothesis means that I can at best infer that the two variables (incom16 - childhood's weelbeing and natspac - opinion on space program spending) are related somehow. Although I can not conclude that opinion on spending on space program depends on childhood's wellbeing.
+
