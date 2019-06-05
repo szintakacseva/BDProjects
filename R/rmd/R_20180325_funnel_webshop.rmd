@@ -3,15 +3,12 @@ title: "Onsite Funnel for a webshop in electronics"
 output:
   pdf_document: default
 params:
-  prefix: pref
   clientid: 65396
-  Year: 2017
   Month: 2017-12
+  currency: NOK
   startMonth: 2017-09
   endMonth: 2017-12
-  currency: NOK
-  to_divide: 2000
-  echo: FALSE
+  echo: TRUE
 graphics: yes
 ---
 
@@ -31,29 +28,32 @@ if(!require(rlang)){install.packages("rlang")}
 
 if(!require(devtools)){install.packages("devtools")}
 install_github("szintakacseva/mlhelper")
-#if(!require(mlhelper)){install_github("szintakacseva/mlhelper")}
-#library(mlhelper)
 library(mlhelper)
 ```
 
-```{r myfunctions}
+```{r myfunctions, echo=FALSE}
 #source('../utils/functions.R')
 
 ```
 
+```{r - render, echo=FALSE}
+# echo: FaLSE
+# render("R_20180325_RFM_webshop.rmd",output_file = "R_20180325_RFM_webshop.pdf")
+# echo: TRUE
+# render("R_20180325_RFM_webshop.rmd",output_file = "R_20180325_RFM_webshop_code.pdf")
+```
+
 ```{r - load from monthly.csv}
-csvfilepath <- paste("../input/csv", "/",params$prefix,  "monthly.csv", sep = "")
+csvfilepath <- paste("../input/csv", "/", "monthly.csv", sep = "")
 df_monthly <- read.csv(file=csvfilepath, header=TRUE, sep=",")
 ```
 
 ```{r - funel params}
 client <- as.character(params$clientid)
-#country <- as.character(params$clientid)
 currency <- as.character(params$currency)
 daterange <- as.character(params$Month)
 service <- as.character("On Site")
 plot.title <- "Onsite Funnel\n\n" # added an extra line here 
-#Country <- paste("Country:", country, sep=" ")
 Currency <- paste("Currency", currency, sep= " ")
 Daterange <- paste("Date range:", daterange , sep=" ")
 Service <- paste("Service:", service, sep= " ")
@@ -96,26 +96,12 @@ df_monthly <- df_monthly %>%
          ClickToContinueRate = ifelse(CountOfOpen==0 , 0, CountOfPositiveClose/CountOfOpen),
          ClickToConversionRate = ifelse((CountOfPositiveClose + CountOfNegativeClose)==0 , 0, CountOfOnsiteRecoveries/(CountOfPositiveClose + CountOfNegativeClose)))         
 
-
-#df_monthly <- df_monthly %>%
-#  mutate(ClickToContinueRate = ifelse(CountOfOpen==0 , 0, CountOfPositiveClose/CountOfOpen))
-
-#df_monthly <- df_monthly %>%
-#  mutate(ClickToConversionRate = ifelse((CountOfPositiveClose + CountOfNegativeClose)==0 , 0, #CountOfOnsiteRecoveries/(CountOfPositiveClose + CountOfNegativeClose)))
-
 #main
 df_monthly <- df_monthly %>%
   mutate(start = StartedSessions,
          display = OnsiteDisplays,
          click = OnsiteClicksToContinue,
          purchase = CompletedPurchases)
-
-#df_monthly <- df_monthly %>%
-#  mutate(display = OnsiteDisplays) 
-#df_monthly <- df_monthly %>%
-#  mutate(click = OnsiteClicksToContinue)
-#df_monthly <- df_monthly %>%
-#  mutate(purchase = CompletedPurchases)
 
 ```
 
@@ -140,7 +126,6 @@ mutate(detail =
 ```{r - monthly-data filtered for a month and client}
 funnel_client <- funnel %>%
   filter(clientid==params$clientid, Month==params$endMonth)
-#head(funnel_client, 10)
 ```
 
 ```{r - funnel_main data preparation for plotting}
